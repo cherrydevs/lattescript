@@ -17,7 +17,8 @@ enum MessageType {
 
 // Error function that is supplied and error type and a line number to give to the message handler
 pub fn die(err_type: Error, line: i32) {
-    handle_message(MessageType::Error, err_type, line)
+    handle_message(MessageType::Error, err_type, line);
+    panic!("program died with error");
 }
 
 // Handles and prints the message
