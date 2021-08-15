@@ -1,6 +1,9 @@
+#![feature(new_uninit)]
 mod lexer;
 mod messagehandle;
+use lexer::Token;
 
 fn main() {
-    lexer::lex("random shit to fix later");
+    let lexerout = lexer::lex("<+ - */ / -*");
+    println!("{:#?}", lexerout);
 }
