@@ -1,4 +1,6 @@
-use crate::messagehandle::{die, Error};
+// This code may seem like spaghetti but its just to make sure our code doesn't have runtime errors like previous
+use crate::{messagehandle::{die, Error}, internal::*};
+use crate::lexer::Token::Type;
 
 #[derive(Debug)]
 pub enum Token {
@@ -8,8 +10,18 @@ pub enum Token {
     Multiply(String),
     Divide(String),
     Deep(Vec<Token>),
+    Type(Types),
     F,
     N,
+}
+
+#[derive(Debug)]
+pub enum Types {
+    Int(i32),
+    String(String),
+    Float(f64),
+    SubVector(Vec<Types>),
+    F
 }
 
 
@@ -35,24 +47,50 @@ pub fn lex(input: &str) -> Vec<Token> {
 }
 
 fn ident(x: String, line: i32) -> Token {
-    match &x[..]{
-        "<" => return Token::Assign(x),
-        "+" => return Token::Plus(x),
-        "-" => return Token::Minus(x),
-        "*" => return Token::Multiply(x),
-        "/" => return Token::Divide(x),
-        x if x.chars().count() > 1 && x.contains("+") | x.contains("<") | x.contains("/")| x.contains("-") | x.contains("*") => return deep_analysis(x.to_string(), line),
-        _ => die(Error::UnParsedCode, line)
-    }
+        match &x[..] {
+            "<" => return Token::Assign(x),
+            "+" => return Token::Plus(x),
+            "-" => return Token::Minus(x),
+            "*" => return Token::Multiply(x),
+            "/" => return Token::Divide(x),
+            x if check_str_int(&x.to_string()) == true && check_str_return_num(&x.to_string()) == true => return Token::Type(Types::Int(into_int(&x.to_string()))),
+            x if x.chars().count() > 1 && x.contains("+") | x.contains("<") | x.contains("/") | x.contains("-") | x.contains("*") | check_str_int(&x.to_string()) => return deep_analysis(x.to_string(), line),
+            // Safe checking to make sure the number isn't a negative so we don't get any runtime errors
+            //_ => die(Error::UnParsedCode, line)
+            _ => println!("{}", x)
+        }
     return Token::F;
 }
 
 fn deep_analysis(y: String, line: i32) -> Token {
     let mut pushed: Vec<Token> = Vec::new();
-    for x in y.chars() {
-        let pushing = ident(x.to_string(), line);
-        pushed.push(pushing);
-    }
+    let mut int: bool = false;
+    let mut lstint: i32 = 0;
+    let mut intstring: i32 = 0;
+    let mut classicsolution: usize = 0;
+        for x in y.chars() {
+            classicsolution = classicsolution + 1;
+            if check_str_int(&x.to_string()) == false && check_str_int(&x.to_string()) != true {
+                println!("{}", x);
+                let pushing = ident(x.to_string(), line);
+                pushed.push(pushing);
+                if int == true {
+                    let pushing: Token = Token::Type(Types::Int(intstring));
+                    pushed.push(pushing);
+                }
+            } else if check_str_int(&x.to_string()) != false && check_str_int(&x.to_string()) == true {
+                if int == true {
+                    intstring = into_int(&format!("{0}{1}", intstring, x));
+                } else if int == false {
+                    intstring = into_int(&x.to_string());
+                }
+                int = true;
+                if classicsolution == y.chars().count() {
+                    let pushing: Token = Token::Type(Types::Int(intstring));
+                    pushed.push(pushing);
+                }
+            }
+        }
     return Token::Deep(pushed);
 }
 
